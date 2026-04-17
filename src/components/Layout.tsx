@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, UserPlus, Vote, Settings } from 'lucide-react';
+import { Home, UserPlus, Vote, Settings, Trophy, X } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
+import { getSystemData } from '../store';
 
 export function BottomNav() {
   const tabs = [
@@ -58,8 +59,48 @@ export function BottomNav() {
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  const [isFinalized, setIsFinalized] = useState(false);
+  const [showBanner, setShowBanner] = useState(true);
+
+  useEffect(() => {
+    // Check initially
+    const data = getSystemData();
+    setIsFinalized(data.state.status === 'finished');
+
+    // Polling or listening to local storage for multi-tab sync could be added, 
+    // but a simple interval check allows the layout to update when navigating or staying on the app.
+    const interval = setInterval(() => {
+        const newData = getSystemData();
+        if ((newData.state.status === 'finished') !== isFinalized) {
+            setIsFinalized(newData.state.status === 'finished');
+        }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isFinalized]);
+
   return (
     <div className="min-h-screen pb-20 flex flex-col bg-gray-50 text-gray-900 selection:bg-gray-200">
+      <AnimatePresence>
+        {isFinalized && showBanner && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="bg-black text-white px-4 py-3 sticky top-0 z-50 overflow-hidden"
+          >
+            <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Trophy size={18} className="text-yellow-400 shrink-0" />
+                <p className="text-sm font-bold truncate">A eleição foi finalizada! Acesse o início para ver os resultados.</p>
+              </div>
+              <button onClick={() => setShowBanner(false)} className="text-gray-400 hover:text-white transition-colors shrink-0">
+                <X size={18} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <main className="flex-1 w-full max-w-7xl mx-auto">{children}</main>
       <BottomNav />
     </div>

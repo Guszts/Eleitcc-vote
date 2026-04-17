@@ -43,14 +43,12 @@ export function CandidateCard({ candidate, showVotes = false }: CandidateCardPro
           {candidate.description}
         </p>
 
-        {showVotes && (
-          <div className="mt-4 pt-4 border-t border-gray-100 w-full flex items-center justify-between text-sm">
-            <span className="font-semibold text-gray-900">Total de votos</span>
-            <span className="bg-gray-900 text-white px-3 py-1 rounded-full font-bold shadow-sm">
-              {totalVotes}
-            </span>
-          </div>
-        )}
+        <div className="mt-4 pt-4 border-t border-gray-100 w-full flex items-center justify-between text-sm">
+          <span className="font-semibold text-gray-900">Total de votos</span>
+          <span className="bg-gray-900 text-white px-3 py-1 rounded-full font-bold shadow-sm">
+            {totalVotes}
+          </span>
+        </div>
       </button>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Detalhes do Candidato">
