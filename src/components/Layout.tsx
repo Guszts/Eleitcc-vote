@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { Home, UserPlus, Vote, Settings } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { motion } from 'motion/react';
 
 export function BottomNav() {
   const tabs = [
@@ -22,15 +23,32 @@ export function BottomNav() {
               to={tab.to}
               className={({ isActive }) =>
                 cn(
-                  "flex flex-col items-center justify-center w-full h-16 space-y-1 rounded-2xl transition-all duration-300",
+                  "relative flex flex-col items-center justify-center w-full h-16 space-y-1 rounded-2xl transition-colors duration-300",
                   isActive
-                    ? "text-black bg-gray-200/50 scale-105 shadow-inner"
-                    : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"
+                    ? "text-black"
+                    : "text-gray-500 hover:text-gray-900"
                 )
               }
             >
-              <Icon size={24} className="mb-0.5" />
-              <span className="text-xs font-bold tracking-tight">{tab.label}</span>
+              {({ isActive }) => (
+                <>
+                  {isActive && (
+                    <motion.div
+                      layoutId="nav-pill"
+                      className="absolute inset-0 bg-gray-200/50 rounded-2xl shadow-inner -z-10"
+                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                  <motion.div
+                    animate={{ scale: isActive ? 1.1 : 1, y: isActive ? -2 : 0 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                    className="flex flex-col items-center"
+                  >
+                    <Icon size={24} className="mb-0.5" />
+                    <span className="text-xs font-bold tracking-tight">{tab.label}</span>
+                  </motion.div>
+                </>
+              )}
             </NavLink>
           );
         })}
