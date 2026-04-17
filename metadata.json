@@ -1,0 +1,8 @@
+{
+  "name": "Eleição Escolar",
+  "description": "Sistema completo de votação para representante escolar",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": []
+}
