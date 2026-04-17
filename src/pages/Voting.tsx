@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { addVote, getSystemData } from '../store';
+import { addVote, useSystemData } from '../store';
 import { useNavigate } from 'react-router-dom';
 import { UserCircle, ShieldCheck, CheckCircle2, Vote as VoteIcon } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -13,10 +13,11 @@ export function Votar() {
   const [confirmModal, setConfirmModal] = useState(false);
   const navigate = useNavigate();
   
-  const state = getSystemData().state;
-  const candidates = getSystemData().candidates;
+  const data = useSystemData();
+  const state = data.state;
+  const candidates = data.candidates;
 
-  const handleVote = () => {
+  const handleVote = async () => {
     setError('');
     if (state.status === 'finished') {
       setError('A eleição já foi finalizada.');
@@ -34,7 +35,7 @@ export function Votar() {
     }
 
     try {
-      addVote(voterName.trim(), selectedCandidate);
+      await addVote(voterName.trim(), selectedCandidate);
       setConfirmModal(false);
       setSuccess(true);
       setTimeout(() => {

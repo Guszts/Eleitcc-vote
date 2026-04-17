@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { getSystemData, finalizeElection, resetElection, getAdminAuth, getCandidateVotesCount, addCandidate, addVote } from '../store';
+import { useSystemData, finalizeElection, resetElection, getAdminAuth, getCandidateVotesCount, addCandidate, addVote, updateLogoUrl } from '../store';
 import { useNavigate } from 'react-router-dom';
 import { SystemData, Candidate } from '../types';
 import { Modal } from '../components/Modal';
-import { AlertTriangle, Users, Vote as VoteIcon, Activity, Trophy, RefreshCcw, LogOut, Search, Clock, CheckCircle2, UserCircle, Plus } from 'lucide-react';
+import { AlertTriangle, Users, Vote as VoteIcon, Activity, Trophy, RefreshCcw, LogOut, Search, Clock, CheckCircle2, UserCircle, Plus, Image as ImageIcon } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { CandidateCard } from '../components/CandidateCard';
 import { PhotoSelector } from '../components/PhotoSelector';
 
 export function AdminPanel() {
-  const [data, setData] = useState<SystemData | null>(null);
+  const data = useSystemData();
   const [confirmFinalize, setConfirmFinalize] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [showAddCandidate, setShowAddCandidate] = useState(false);
   const [showAddVote, setShowAddVote] = useState(false);
+  const [showLogoModal, setShowLogoModal] = useState(false);
 
   // Forms states
   const [candidateName, setCandidateName] = useState('');
@@ -25,6 +26,9 @@ export function AdminPanel() {
   const [voterSelectedCandidate, setVoterSelectedCandidate] = useState('');
   const [voterError, setVoterError] = useState('');
 
+  const [logoInput, setLogoInput] = useState('');
+  const [logoError, setLogoError] = useState('');
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -32,22 +36,36 @@ export function AdminPanel() {
       navigate('/ajustes');
       return;
     }
-    setData(getSystemData());
   }, [navigate]);
 
-  const handleFinalize = () => {
-    finalizeElection();
-    setData(getSystemData());
+  useEffect(() => {
+    if (data?.state?.logoUrl) {
+      setLogoInput(data.state.logoUrl);
+    }
+  }, [data?.state?.logoUrl]);
+
+  const handleFinalize = async () => {
+    await finalizeElection();
     setConfirmFinalize(false);
   };
 
-  const handleReset = () => {
-    resetElection();
-    setData(getSystemData());
+  const handleReset = async () => {
+    await resetElection();
     setConfirmReset(false);
   };
 
-  const handleManualAddCandidate = (e: React.FormEvent) => {
+  const handleUpdateLogo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLogoError('');
+    try {
+      await updateLogoUrl(logoInput.trim());
+      setShowLogoModal(false);
+    } catch (err: any) {
+      setLogoError(err.message || 'Erro ao atualizar logo.');
+    }
+  };
+
+  const handleManualAddCandidate = async (e: React.FormEvent) => {
     e.preventDefault();
     setCandidateError('');
     if (!candidateName.trim() || !candidateDesc.trim()) {
@@ -55,12 +73,11 @@ export function AdminPanel() {
       return;
     }
     try {
-      addCandidate({
+      await addCandidate({
         name: candidateName.trim(),
         description: candidateDesc.trim(),
         photoUrl: candidatePhoto
       });
-      setData(getSystemData());
       setShowAddCandidate(false);
       setCandidateName('');
       setCandidateDesc('');
@@ -70,7 +87,7 @@ export function AdminPanel() {
     }
   };
 
-  const handleManualAddVote = (e: React.FormEvent) => {
+  const handleManualAddVote = async (e: React.FormEvent) => {
     e.preventDefault();
     setVoterError('');
     if (!voterName.trim() || !voterSelectedCandidate) {
@@ -78,8 +95,7 @@ export function AdminPanel() {
       return;
     }
     try {
-      addVote(voterName.trim(), voterSelectedCandidate);
-      setData(getSystemData());
+      await addVote(voterName.trim(), voterSelectedCandidate);
       setShowAddVote(false);
       setVoterName('');
       setVoterSelectedCandidate('');
@@ -107,7 +123,10 @@ export function AdminPanel() {
           </h1>
           <p className="text-gray-500 font-medium">Controle total sobre o processo eleitoral.</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-wrap">
+           <button onClick={() => setShowLogoModal(true)} className="p-3 text-gray-700 hover:text-black hover:bg-gray-100 rounded-xl transition-colors tooltip flex items-center gap-2 font-bold text-sm border border-gray-200">
+             <ImageIcon size={18} /> Alterar Logo
+           </button>
            <button onClick={() => setShowAddCandidate(true)} className="p-3 text-gray-700 hover:text-black hover:bg-gray-100 rounded-xl transition-colors tooltip flex items-center gap-2 font-bold text-sm border border-gray-200">
              <Plus size={18} /> Candidato Manual
            </button>
@@ -266,6 +285,19 @@ export function AdminPanel() {
              </button>
            </div>
          </div>
+      </Modal>
+
+      <Modal isOpen={showLogoModal} onClose={() => setShowLogoModal(false)} title="Alterar Logo do Sistema">
+         <form onSubmit={handleUpdateLogo} className="space-y-4 pb-4">
+           {logoError && <div className="text-red-600 bg-red-50 p-2 font-bold text-sm rounded-lg text-center">{logoError}</div>}
+           <div>
+             <label className="text-sm font-bold text-gray-900 block mb-2">URL da Imagem da Logo</label>
+             <input type="url" value={logoInput} onChange={e => setLogoInput(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl" placeholder="https://exemplo.com/logo.png" />
+           </div>
+           <button type="submit" className="w-full py-4 bg-gray-900 hover:bg-black text-white font-bold rounded-xl transition-all shadow-lg mt-4">
+             Salvar Logo
+           </button>
+         </form>
       </Modal>
 
       <Modal isOpen={confirmReset} onClose={() => setConfirmReset(false)} title="Resetar Todo o Sistema">

@@ -1,0 +1,64 @@
+{
+  "entities": {
+    "Candidate": {
+      "title": "Candidate",
+      "description": "Represents a user running for election",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["name", "description", "createdAt"]
+    },
+    "Vote": {
+      "title": "Vote",
+      "description": "Represents a single vote",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "votedForId": { "type": "string" },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["name", "votedForId", "timestamp"]
+    },
+    "SystemSettings": {
+      "title": "System Settings",
+      "description": "Global election configuration and state",
+      "type": "object",
+      "properties": {
+        "status": { "type": "string", "enum": ["ongoing", "finished"] },
+        "logoUrl": { "type": "string" }
+      },
+      "required": ["status"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "Admin users allowed to manage candidates and election state",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" }
+      },
+      "required": ["email"]
+    }
+  },
+  "firestore": {
+    "/candidates/{candidateId}": {
+      "schema": "Candidate",
+      "description": "Collection of all candidates"
+    },
+    "/votes/{voteId}": {
+      "schema": "Vote",
+      "description": "Collection of all cast votes"
+    },
+    "/system/election": {
+      "schema": "SystemSettings",
+      "description": "Singleton configuration document for the election state and global settings"
+    },
+    "/admins/{userId}": {
+      "schema": "Admin",
+      "description": "Registered administrators"
+    }
+  }
+}

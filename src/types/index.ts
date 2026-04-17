@@ -17,6 +17,7 @@ export interface ElectionState {
   status: 'ongoing' | 'finished';
   winner?: Candidate;
   vice?: Candidate;
+  logoUrl?: string;
 }
 
 export interface SystemData {

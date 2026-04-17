@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Home, UserPlus, Vote, Settings, Trophy, X } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
-import { getSystemData } from '../store';
+import { useSystemData } from '../store';
 
 export function BottomNav() {
   const tabs = [
@@ -59,25 +59,9 @@ export function BottomNav() {
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const [isFinalized, setIsFinalized] = useState(false);
   const [showBanner, setShowBanner] = useState(true);
-
-  useEffect(() => {
-    // Check initially
-    const data = getSystemData();
-    setIsFinalized(data.state.status === 'finished');
-
-    // Polling or listening to local storage for multi-tab sync could be added, 
-    // but a simple interval check allows the layout to update when navigating or staying on the app.
-    const interval = setInterval(() => {
-        const newData = getSystemData();
-        if ((newData.state.status === 'finished') !== isFinalized) {
-            setIsFinalized(newData.state.status === 'finished');
-        }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [isFinalized]);
+  const data = useSystemData();
+  const isFinalized = data.state.status === 'finished';
 
   return (
     <div className="min-h-screen pb-20 flex flex-col bg-gray-50 text-gray-900 selection:bg-gray-200">

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { getSystemData } from '../store';
+import React from 'react';
+import { useSystemData } from '../store';
 import { SystemData } from '../types';
 import { CandidateCard } from '../components/CandidateCard';
 import { NavLink } from 'react-router-dom';
@@ -7,23 +7,26 @@ import { UserPlus, Vote, ShieldCheck, Info, Award, Trophy, ArrowRight } from 'lu
 import { cn } from '../lib/utils';
 
 export function Home() {
-  const [data, setData] = useState<SystemData | null>(null);
-
-  useEffect(() => {
-    setData(getSystemData());
-  }, []);
+  const data = useSystemData();
 
   if (!data) return null;
 
   if (data.state.status === 'finished') {
     return (
       <div className="p-4 sm:p-8 space-y-8 animate-in fade-in duration-500">
-        <div className="text-center py-12 px-4 bg-gradient-to-b from-gray-900 to-black rounded-3xl text-white shadow-xl">
-          <Trophy className="mx-auto text-yellow-300 w-16 h-16 sm:w-24 sm:h-24 mb-6 drop-shadow-md" />
-          <h1 className="text-4xl sm:text-5xl font-black tracking-tight mb-4 drop-shadow-sm">Eleição Encerrada</h1>
-          <p className="text-gray-200 text-lg font-medium max-w-lg mx-auto">
-            Os votos foram computados. Conheça agora a nossa nova representação escolar.
-          </p>
+        <div className="text-center py-12 px-4 bg-gradient-to-b from-gray-900 to-black rounded-3xl text-white shadow-xl relative overflow-hidden">
+          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1492538368677-f6e0afe31dcc?auto=format&fit=crop&q=80&w=2000')] opacity-10 mix-blend-overlay object-cover" />
+          <div className="relative z-10">
+            {data.state.logoUrl ? (
+              <img src={data.state.logoUrl} alt="Logo" className="mx-auto w-20 h-20 sm:w-24 sm:h-24 mb-6 rounded-3xl object-cover bg-white p-1 drop-shadow-md" />
+            ) : (
+              <Trophy className="mx-auto text-yellow-300 w-16 h-16 sm:w-24 sm:h-24 mb-6 drop-shadow-md" />
+            )}
+            <h1 className="text-4xl sm:text-5xl font-black tracking-tight mb-4 drop-shadow-sm">Eleição Encerrada</h1>
+            <p className="text-gray-200 text-lg font-medium max-w-lg mx-auto">
+              Os votos foram computados. Conheça agora a nossa nova representação escolar.
+            </p>
+          </div>
         </div>
 
         {data.state.winner && (
@@ -59,9 +62,14 @@ export function Home() {
       <section className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-black to-black rounded-[2.5rem] p-8 sm:p-12 text-white shadow-xl shadow-black/20">
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=2000')] opacity-10 mix-blend-overlay object-cover" />
         <div className="relative z-10 max-w-2xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 backdrop-blur-md text-sm font-bold tracking-wide mb-6">
-            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            Eleição em Andamento
+          <div className="flex items-center gap-4 mb-6">
+            {data.state.logoUrl && (
+              <img src={data.state.logoUrl} alt="Logo da Escola" className="w-16 h-16 rounded-2xl object-cover bg-white p-1" />
+            )}
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 backdrop-blur-md text-sm font-bold tracking-wide">
+              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+              Eleição em Andamento
+            </div>
           </div>
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-[1.1] mb-6">
             O futuro da nossa escola está nas suas mãos.

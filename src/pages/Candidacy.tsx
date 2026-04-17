@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { addCandidate, getSystemData } from '../store';
+import { addCandidate, useSystemData } from '../store';
 import { useNavigate } from 'react-router-dom';
 import { UserPlus, Image as ImageIcon, FileText, CheckCircle2 } from 'lucide-react';
 import { CandidateCard } from '../components/CandidateCard';
@@ -13,10 +13,11 @@ export function Candidatar() {
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
   
-  const state = getSystemData().state;
-  const candidates = getSystemData().candidates;
+  const data = useSystemData();
+  const state = data.state;
+  const candidates = data.candidates;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     
@@ -34,7 +35,7 @@ export function Candidatar() {
     }
 
     try {
-      addCandidate({
+      await addCandidate({
         name: name.trim(),
         description: description.trim(),
         photoUrl: photoUrl.trim()

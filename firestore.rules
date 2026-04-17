@@ -1,0 +1,73 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Primitive Helpers
+    function isSignedIn() { return request.auth != null; }
+    function isAdmin() { return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    
+    // Schema Validation Helpers
+    function isValidCandidate(data) {
+      return data.keys().hasAll(['name', 'description', 'createdAt']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.description is string && data.description.size() <= 2000 &&
+             data.createdAt is number &&
+             ( !('photoUrl' in data) || (data.photoUrl is string && data.photoUrl.size() <= 1000) );
+    }
+
+    function isValidVote(data) {
+      return data.keys().hasAll(['name', 'votedForId', 'timestamp']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.votedForId is string && data.votedForId.size() > 0 && data.votedForId.size() <= 128 &&
+             data.timestamp is number && data.timestamp == request.time.toMillis();
+    }
+
+    function isValidSystemSettings(data) {
+      return data.keys().hasAll(['status']) &&
+             data.status is string && (data.status == 'ongoing' || data.status == 'finished') &&
+             ( !('logoUrl' in data) || (data.logoUrl is string && data.logoUrl.size() <= 1000) );
+    }
+
+    // Candidates Collection
+    match /candidates/{candidateId} {
+      allow read: if true; // Publicly readable
+      allow create: if isAdmin() && isValidId(candidateId) &&
+                    isValidCandidate(incoming()) && incoming().createdAt == request.time.toMillis();
+      allow update: if isAdmin() && isValidId(candidateId) &&
+                    isValidCandidate(incoming()) && incoming().createdAt == existing().createdAt;
+      allow delete: if isAdmin() && isValidId(candidateId);
+    }
+
+    // Votes Collection
+    match /votes/{voteId} {
+      allow read: if true; // Publicly readable to count votes
+      allow create: if isSignedIn() && isValidId(voteId) &&
+                    isValidVote(incoming()) && 
+                    exists(/databases/$(database)/documents/candidates/$(incoming().votedForId));
+      allow update, delete: if false; // Votes are immutable
+    }
+
+    // System Settings
+    match /system/{docId} {
+      allow read: if true;
+      allow create, update: if isAdmin() && docId == 'election' && isValidSystemSettings(incoming());
+      allow delete: if false;
+    }
+
+    // Admins Collection
+    match /admins/{userId} {
+      // Allow the user to read their own admin record to verify
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      // Bootstrapped Admin: Only allow creation via Firebase Console or manual injection, unless we allow one
+      allow create, update, delete: if false; 
+    }
+  }
+}
