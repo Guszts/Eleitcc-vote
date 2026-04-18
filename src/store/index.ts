@@ -34,7 +34,7 @@ onSnapshot(votesRef, (snap) => {
 
 onSnapshot(systemRef, (snap) => {
   if (snap.exists()) {
-    currentSystemData.state = { status: snap.data().status || 'ongoing', logoUrl: snap.data().logoUrl, winner: snap.data().winner, vice: snap.data().vice };
+    currentSystemData.state = { status: snap.data().status || 'ongoing', winner: snap.data().winner, vice: snap.data().vice };
   } else {
     currentSystemData.state = DEFAULT_STATE;
   }
@@ -156,9 +156,5 @@ export const resetElection = async () => {
     await deleteDoc(v.ref);
   }
   
-  await setDoc(systemRef, { status: 'ongoing', logoUrl: '' });
-};
-
-export const updateLogoUrl = async (url: string) => {
-  await setDoc(systemRef, { logoUrl: url }, { merge: true });
+  await setDoc(systemRef, { status: 'ongoing' });
 };
