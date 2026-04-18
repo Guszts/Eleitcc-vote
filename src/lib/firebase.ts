@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { getFirestore, doc, getDocFromServer, setDoc } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json'; // Go up two dirs from src/lib/
 
 const app = initializeApp(firebaseConfig);
@@ -12,6 +12,8 @@ signInAnonymously(auth).catch(console.error);
 async function testConnection() {
   try {
     await getDocFromServer(doc(db, 'system', 'connection'));
+    // Auto-seed logo directly upon boot
+    await setDoc(doc(db, 'system', 'election'), { logoUrl: 'https://eleitcc-vote.vercel.app/logo.png' }, { merge: true });
   } catch (error) {
     if(error instanceof Error && error.message.includes('the client is offline')) {
       console.error("Please check your Firebase configuration.");
