@@ -1,18 +1,22 @@
 import React, { useState } from 'react';
 import { addCandidate, useSystemData } from '../store';
 import { useNavigate } from 'react-router-dom';
-import { UserPlus, Image as ImageIcon, FileText, CheckCircle2 } from 'lucide-react';
+import { UserPlus, Image as ImageIcon, FileText, CheckCircle2, LogIn } from 'lucide-react';
 import { CandidateCard } from '../components/CandidateCard';
 import { PhotoSelector } from '../components/PhotoSelector';
+import { useAuth } from '../hooks/useAuth';
 
 export function Candidatar() {
   const [name, setName] = useState('');
+  const [slogan, setSlogan] = useState('');
+  const [grade, setGrade] = useState('');
   const [description, setDescription] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
   
+  const { user, loading } = useAuth();
   const data = useSystemData();
   const state = data.state;
   const candidates = data.candidates;
@@ -25,8 +29,8 @@ export function Candidatar() {
       setError('A eleição já foi finalizada.');
       return;
     }
-    if (!name.trim() || !description.trim()) {
-      setError('Nome e justificativa são obrigatórios.');
+    if (!name.trim() || !description.trim() || !slogan.trim() || !grade.trim()) {
+      setError('Todos os campos de texto são obrigatórios.');
       return;
     }
     if (description.length < 20) {
@@ -37,6 +41,8 @@ export function Candidatar() {
     try {
       await addCandidate({
         name: name.trim(),
+        slogan: slogan.trim(),
+        grade: grade.trim(),
         description: description.trim(),
         photoUrl: photoUrl.trim()
       });
@@ -48,6 +54,28 @@ export function Candidatar() {
       setError(err.message || 'Erro ao registrar candidatura.');
     }
   };
+
+  if (loading) {
+    return <div className="p-8 text-center mt-20 text-gray-400 font-bold">Carregando...</div>;
+  }
+
+  if (!user) {
+    return (
+      <div className="p-8 text-center max-w-lg mx-auto mt-20">
+        <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6 text-gray-500">
+          <LogIn size={40} />
+        </div>
+        <h2 className="text-3xl font-black text-gray-900 mb-4 tracking-tight">Login Necessário</h2>
+        <p className="text-gray-600 text-lg mb-8">Para inserir uma candidatura na eleição acadêmica, precisamos que você faça login. Isso garante 1 candidatura por pessoa.</p>
+        <button
+          onClick={() => navigate('/auth')}
+          className="w-full py-4 bg-black hover:bg-gray-800 text-white rounded-2xl font-bold transition-all shadow-lg"
+        >
+          Ir para Login
+        </button>
+      </div>
+    );
+  }
 
   if (state.status === 'finished') {
     return (
@@ -104,6 +132,36 @@ export function Candidatar() {
                 placeholder="Ex: João Silva"
                 className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-gray-200 focus:border-gray-600 outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400"
               />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                  <FileText size={18} className="text-gray-600" />
+                  Turma/Série
+                </label>
+                <input
+                  type="text"
+                  value={grade}
+                  onChange={e => setGrade(e.target.value)}
+                  placeholder="Ex: 3º Ano B"
+                  className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-gray-200 focus:border-gray-600 outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                  <CheckCircle2 size={18} className="text-gray-600" />
+                  Slogan Breve
+                </label>
+                <input
+                  type="text"
+                  value={slogan}
+                  onChange={e => setSlogan(e.target.value)}
+                  placeholder="O resumo da sua campanha"
+                  className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-gray-200 focus:border-gray-600 outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">

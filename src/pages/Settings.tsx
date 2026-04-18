@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { getAdminAuth, setAdminAuth, useSystemData } from '../store';
 import { useNavigate } from 'react-router-dom';
-import { Settings as SettingsIcon, Info, LockKeyhole, ArrowRight, LayoutDashboard } from 'lucide-react';
+import { Settings as SettingsIcon, Info, LockKeyhole, ArrowRight, LayoutDashboard, LogOut, User } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
+import { supabase } from '../lib/supabase';
 
 export function Ajustes() {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -9,6 +11,7 @@ export function Ajustes() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   
+  const { user } = useAuth();
   const data = useSystemData();
   const state = data.state;
 
@@ -33,9 +36,14 @@ export function Ajustes() {
     }
   };
 
-  const handleLogout = async () => {
+  const handleLogoutAdmin = async () => {
     await setAdminAuth(false);
     setIsAdmin(false);
+  };
+
+  const handleLogoutVoter = async () => {
+    await supabase.auth.signOut();
+    navigate('/');
   };
 
   return (
@@ -46,7 +54,7 @@ export function Ajustes() {
         </div>
         <div>
           <h1 className="text-3xl font-black tracking-tight text-gray-900">Ajustes</h1>
-          <p className="text-gray-500 font-medium">Configurações do sistema e acesso restrito.</p>
+          <p className="text-gray-500 font-medium">Configurações da conta, sistema e acesso restrito.</p>
         </div>
       </section>
 
@@ -54,7 +62,37 @@ export function Ajustes() {
         <section className="space-y-6">
           <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
             <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <Info size={20} className="text-gray-600" /> Informações
+              <User size={20} className="text-gray-600" /> Sua Conta
+            </h2>
+            {user ? (
+               <div className="space-y-4">
+                 <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <p className="text-sm text-gray-500 font-medium mb-1">Conectado como</p>
+                    <p className="text-gray-900 font-bold truncate">{user.email}</p>
+                 </div>
+                 <button
+                   onClick={handleLogoutVoter}
+                   className="w-full py-4 text-red-600 bg-red-50 hover:bg-red-100 rounded-2xl font-bold flex items-center justify-center gap-2 transition-colors border border-red-100"
+                 >
+                   <LogOut size={18} /> Sair da conta
+                 </button>
+               </div>
+            ) : (
+               <div className="space-y-4 text-center py-4 text-gray-500">
+                 <p className="font-medium text-sm">Você não está conectado.</p>
+                 <button
+                   onClick={() => navigate('/auth')}
+                   className="w-full py-3 bg-black hover:bg-gray-800 text-white rounded-xl font-bold transition-colors"
+                 >
+                   Fazer Login
+                 </button>
+               </div>
+            )}
+          </div>
+
+          <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Info size={20} className="text-gray-600" /> Informações do Sistema
             </h2>
             <div className="space-y-3">
               <div className="flex justify-between items-center py-2 border-b border-gray-50">
@@ -65,18 +103,9 @@ export function Ajustes() {
               </div>
               <div className="flex justify-between items-center py-2 border-b border-gray-50">
                 <span className="text-gray-600 font-medium text-sm">Versão do app</span>
-                <span className="text-gray-900 font-bold text-sm">1.0.0</span>
+                <span className="text-gray-900 font-bold text-sm">2.0.0</span>
               </div>
             </div>
-          </div>
-          
-          <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-            <h2 className="text-xl font-bold text-gray-900 mb-4 text-gray-400 line-through decoration-gray-300">
-              Preferências Visuais
-            </h2>
-            <p className="text-gray-400 text-sm italic">
-               Bloqueado nesta versão. A identidade visual padrão está ativa.
-            </p>
           </div>
         </section>
 
@@ -102,7 +131,7 @@ export function Ajustes() {
                      <LayoutDashboard size={18} /> Acessar Painel
                    </button>
                    <button
-                     onClick={handleLogout}
+                     onClick={handleLogoutAdmin}
                      className="w-full py-4 text-gray-400 hover:text-white font-bold transition-colors"
                    >
                      Encerrar Sessão

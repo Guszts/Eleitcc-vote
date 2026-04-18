@@ -1,6 +1,8 @@
 export interface Candidate {
   id: string;
   name: string;
+  slogan: string;
+  grade: string;
   description: string;
   photoUrl: string;
   createdAt: number;

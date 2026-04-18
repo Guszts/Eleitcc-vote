@@ -15,63 +15,93 @@ export function CandidateCard({ candidate, showVotes = false }: CandidateCardPro
   const totalVotes = getCandidateVotesCount(candidate.id);
   const anonymousVoters = getAnonymousVotersForCandidate(candidate.id);
 
+  const paragraphs = candidate.description.split('\n').filter(p => p.trim() !== '');
+
   return (
     <>
       <button 
         onClick={() => setIsModalOpen(true)}
-        className="group relative flex flex-col items-start p-5 bg-white border border-gray-200 rounded-3xl overflow-hidden hover:border-gray-400 hover:shadow-xl hover:shadow-black/5 transition-all duration-300 text-left w-full h-full"
+        className="group relative flex flex-col items-start bg-white border border-gray-200 rounded-3xl overflow-hidden hover:border-gray-400 hover:shadow-xl hover:shadow-black/5 transition-all duration-300 text-left w-full h-full"
       >
-        <div className="flex items-center gap-4 w-full mb-4">
-          <div className="w-16 h-16 rounded-2xl overflow-hidden shrink-0 border-2 border-gray-100 group-hover:border-gray-200 transition-colors">
+        <div className="p-5 w-full bg-gray-50/50 border-b border-gray-100 flex gap-4 items-center">
+          <div className="w-16 h-16 rounded-2xl overflow-hidden shrink-0 border-2 border-gray-100 group-hover:border-gray-200 transition-colors bg-white">
             {candidate.photoUrl ? (
               <img src={candidate.photoUrl} alt={candidate.name} className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full bg-gray-100 text-gray-600 flex items-center justify-center">
+              <div className="w-full h-full text-gray-400 flex items-center justify-center">
                 <UserCircle size={32} />
               </div>
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-bold text-gray-900 truncate tracking-tight">{candidate.name}</h3>
-            <span className="inline-flex items-center mt-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">
-              Candidato
-            </span>
+            <h3 className="text-xl font-bold text-gray-900 truncate tracking-tight mb-1">{candidate.name}</h3>
+            {candidate.grade ? (
+              <span className="inline-flex items-center px-2 py-0.5 rounded border border-gray-200 text-[10px] font-bold text-gray-600 bg-white shadow-sm uppercase tracking-wider">
+                {candidate.grade}
+              </span>
+            ) : (
+              <span className="inline-flex items-center px-2 py-0.5 rounded border border-gray-200 text-[10px] font-bold text-gray-600 bg-white shadow-sm uppercase tracking-wider">
+                Candidato
+              </span>
+            )}
           </div>
         </div>
         
-        <p className="text-gray-600 text-sm line-clamp-2 leading-relaxed flex-1">
-          {candidate.description}
-        </p>
+        <div className="p-5 flex-1 flex flex-col w-full h-full">
+           {candidate.slogan && (
+             <blockquote className="text-sm font-bold italic text-gray-900 border-l-2 border-gray-900 pl-3 mb-4">
+               "{candidate.slogan}"
+             </blockquote>
+           )}
+           <div className="text-gray-600 text-sm leading-relaxed flex-1 w-full flex flex-col gap-2">
+             {paragraphs.slice(0, 2).map((p, idx) => (
+                <p key={idx} className="line-clamp-2 pl-3 border-l-2 border-gray-200">{p}</p>
+             ))}
+             {paragraphs.length > 2 && <p className="text-xs text-gray-400 font-bold pl-3 border-l-2 border-transparent">Ler mais...</p>}
+           </div>
 
-        <div className="mt-4 pt-4 border-t border-gray-100 w-full flex items-center justify-between text-sm">
-          <span className="font-semibold text-gray-900">Total de votos</span>
-          <span className="bg-gray-900 text-white px-3 py-1 rounded-full font-bold shadow-sm">
-            {totalVotes}
-          </span>
+           <div className="mt-4 pt-4 border-t border-gray-100 w-full flex items-center justify-between text-sm shrink-0">
+             <span className="font-semibold text-gray-500">Votos confirmados</span>
+             <span className="bg-gray-900 text-white px-3 py-1 rounded-full font-bold shadow-sm">
+               {totalVotes}
+             </span>
+           </div>
         </div>
       </button>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Detalhes do Candidato">
         <div className="space-y-8">
-          <div className="flex flex-col items-centertext-center">
+          <div className="flex flex-col items-center text-center">
             <div className="w-24 h-24 rounded-full overflow-hidden shrink-0 border-4 border-gray-50 shadow-sm mx-auto mb-4">
               {candidate.photoUrl ? (
-                <img src={candidate.photoUrl} alt={candidate.name} className="w-full h-full object-cover" />
+                <img src={candidate.photoUrl} alt={candidate.name} className="w-full h-full object-cover bg-white" />
               ) : (
-                <div className="w-full h-full bg-gray-100 text-gray-600 flex items-center justify-center">
+                <div className="w-full h-full bg-gray-50 text-gray-400 flex items-center justify-center">
                   <UserCircle size={48} />
                 </div>
               )}
             </div>
-            <h3 className="text-2xl font-extrabold text-gray-900 tracking-tight text-center">{candidate.name}</h3>
+            <h3 className="text-3xl font-extrabold text-gray-900 tracking-tight text-center">{candidate.name}</h3>
+            {candidate.grade && <span className="inline-block mt-2 bg-gray-100 text-gray-600 font-bold px-3 py-1 text-sm rounded-full">{candidate.grade}</span>}
           </div>
 
-          <div className="bg-gray-100/50 border border-gray-200 rounded-3xl p-6 relative">
-            <Quote className="absolute top-4 right-4 text-gray-300/50" size={48} />
-            <h4 className="text-sm font-bold text-black uppercase tracking-wider mb-2">Por que votar em mim?</h4>
-            <p className="text-gray-700 leading-relaxed relative z-10 whitespace-pre-wrap">
-              {candidate.description || 'Nenhum detalhe fornecido pelo candidato.'}
-            </p>
+          <div className="bg-white border-y sm:border sm:rounded-3xl border-gray-200 p-6 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-5">
+              <Quote size={80} />
+            </div>
+            
+            {candidate.slogan && (
+              <h4 className="text-xl font-bold text-gray-900 mb-6 pb-4 border-b border-gray-100 relative z-10 italic">"{candidate.slogan}"</h4>
+            )}
+
+            <div className="space-y-4 relative z-10">
+              {paragraphs.map((p, idx) => (
+                <p key={idx} className="text-gray-700 leading-relaxed font-medium pl-4 border-l-2 border-gray-200 py-1">
+                  {p}
+                </p>
+              ))}
+              {paragraphs.length === 0 && <p className="text-gray-500 text-sm italic">Nenhum detalhe fornecido.</p>}
+            </div>
           </div>
 
           {showVotes && (

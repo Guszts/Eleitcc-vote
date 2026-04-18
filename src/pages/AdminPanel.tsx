@@ -54,6 +54,8 @@ export function AdminPanel() {
     try {
       await addCandidate({
         name: candidateName.trim(),
+        slogan: 'Inscrito pelo Admin',
+        grade: 'Geral',
         description: candidateDesc.trim(),
         photoUrl: candidatePhoto
       });
@@ -194,9 +196,21 @@ export function AdminPanel() {
                          <p className="font-bold text-gray-900 truncate">{c.name}</p>
                          <p className="text-xs text-gray-500">Inscrito em: {new Date(c.createdAt).toLocaleDateString()}</p>
                        </div>
-                       <div className="text-right">
-                         <span className="block text-2xl font-black text-gray-900">{votes}</span>
-                         <span className="text-[10px] uppercase font-bold text-gray-400 tracking-widest">votos</span>
+                       <div className="text-right flex items-center gap-4">
+                         <div>
+                           <span className="block text-2xl font-black text-gray-900">{votes}</span>
+                           <span className="text-[10px] uppercase font-bold text-gray-400 tracking-widest">votos</span>
+                         </div>
+                         <button 
+                           onClick={async () => {
+                             if (confirm(`Tem certeza que deseja excluir o candidato ${c.name} e todos os seus votos associados?`)) {
+                               const { deleteCandidate } = await import('../store');
+                               await deleteCandidate(c.id);
+                             }
+                           }}
+                           className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors tooltip relative shrink-0 border border-transparent hover:border-red-100" title="Apagar Candidato">
+                           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                         </button>
                        </div>
                      </div>
                    );

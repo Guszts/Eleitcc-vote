@@ -7,6 +7,7 @@ import { Candidatar } from './pages/Candidacy';
 import { Votar } from './pages/Voting';
 import { Ajustes } from './pages/Settings';
 import { AdminPanel } from './pages/AdminPanel';
+import { Auth } from './pages/Auth';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -35,6 +36,7 @@ function AnimatedRoutes() {
           <Route path="/votar" element={<Votar />} />
           <Route path="/ajustes" element={<Ajustes />} />
           <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/auth" element={<Auth />} />
         </Routes>
       </motion.div>
     </AnimatePresence>

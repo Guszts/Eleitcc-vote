@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { addCandidate, addVote, getSystemData } from '../store';
 import { UserPlus, Vote, PlusCircle } from 'lucide-react';
-import { SystemData } from '../types';
 
 export function AdminTools({ onUpdate }: { onUpdate: () => void }) {
   const [candidateName, setCandidateName] = useState('');
@@ -11,15 +10,17 @@ export function AdminTools({ onUpdate }: { onUpdate: () => void }) {
 
   const data = getSystemData();
 
-  const handleAddCandidate = (e: React.FormEvent) => {
+  const handleAddCandidate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!candidateName.trim() || !description.trim()) {
       alert("Preencha nome e propostas.");
       return;
     }
     try {
-      addCandidate({
+      await addCandidate({
         name: candidateName.trim(),
+        slogan: 'Admin',
+        grade: 'Geral',
         description: description.trim(),
         photoUrl: ''
       });
@@ -32,7 +33,7 @@ export function AdminTools({ onUpdate }: { onUpdate: () => void }) {
     }
   };
 
-  const handleAddVotes = (e: React.FormEvent) => {
+  const handleAddVotes = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCandidate) {
       alert("Selecione um candidato");
@@ -40,7 +41,7 @@ export function AdminTools({ onUpdate }: { onUpdate: () => void }) {
     }
     try {
       for (let i = 0; i < voteCount; i++) {
-        addVote('Anônimo (Admin)', selectedCandidate);
+        await addVote('Anônimo (Admin)', selectedCandidate);
       }
       setVoteCount(1);
       onUpdate();

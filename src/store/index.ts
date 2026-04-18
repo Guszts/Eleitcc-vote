@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Candidate, Voter, ElectionState, SystemData } from '../types';
-import { db, auth } from '../lib/firebase';
-import { collection, doc, setDoc, getDocs, onSnapshot, query, addDoc, updateDoc, deleteDoc, getDoc, runTransaction } from 'firebase/firestore';
+import { supabase } from '../lib/supabase';
 
 const DEFAULT_STATE: ElectionState = { status: 'ongoing' };
 
@@ -17,29 +16,52 @@ function notifyListeners() {
   dataListeners.forEach(l => l());
 }
 
-// Global subscriptions to build currentSystemData
-const candidatesRef = collection(db, 'candidates');
-const votesRef = collection(db, 'votes');
-const systemRef = doc(db, 'system', 'election');
+export const fetchSystemData = async () => {
+    const [cRes, vRes, sRes] = await Promise.all([
+      supabase.from('candidates').select('*').order('created_at', { ascending: true }),
+      supabase.from('votes').select('*').order('created_at', { ascending: true }),
+      supabase.from('system_settings').select('*').eq('id', 'election').single()
+    ]);
+    
+    if (cRes.data) {
+      currentSystemData.candidates = cRes.data.map(c => ({
+        id: c.id,
+        user_id: c.user_id,
+        name: c.name,
+        slogan: c.slogan,
+        grade: c.grade,
+        description: c.description,
+        photoUrl: c.photourl || c.photoUrl || '',
+        createdAt: new Date(c.created_at).getTime()
+      }));
+    }
+    
+    if (vRes.data) {
+      currentSystemData.votes = vRes.data.map(v => ({
+        id: v.id,
+        votedForId: v.voted_for_id,
+        name: v.name || 'Anônimo',
+        timestamp: new Date(v.created_at).getTime()
+      }));
+    }
+    
+    if (sRes.data) {
+      currentSystemData.state = { 
+        status: sRes.data.status, 
+        winner: sRes.data.winner, 
+        vice: sRes.data.vice 
+      };
+    } else {
+      currentSystemData.state = DEFAULT_STATE;
+    }
+    notifyListeners();
+};
 
-onSnapshot(candidatesRef, (snap) => {
-  currentSystemData.candidates = snap.docs.map(d => ({ id: d.id, ...d.data() } as Candidate));
-  notifyListeners();
-});
+supabase.channel('public:system_settings').on('postgres_changes', { event: '*', schema: 'public', table: 'system_settings' }, fetchSystemData).subscribe();
+supabase.channel('public:candidates').on('postgres_changes', { event: '*', schema: 'public', table: 'candidates' }, fetchSystemData).subscribe();
+supabase.channel('public:votes').on('postgres_changes', { event: '*', schema: 'public', table: 'votes' }, fetchSystemData).subscribe();
 
-onSnapshot(votesRef, (snap) => {
-  currentSystemData.votes = snap.docs.map(d => ({ id: d.id, ...d.data() } as Voter));
-  notifyListeners();
-});
-
-onSnapshot(systemRef, (snap) => {
-  if (snap.exists()) {
-    currentSystemData.state = { status: snap.data().status || 'ongoing', winner: snap.data().winner, vice: snap.data().vice };
-  } else {
-    currentSystemData.state = DEFAULT_STATE;
-  }
-  notifyListeners();
-});
+fetchSystemData();
 
 export const useSystemData = (): SystemData => {
   const [data, setData] = useState<SystemData>(currentSystemData);
@@ -47,7 +69,7 @@ export const useSystemData = (): SystemData => {
   useEffect(() => {
     const listener = () => setData({ ...currentSystemData });
     dataListeners.add(listener);
-    setData({ ...currentSystemData }); // Catch any updates during mount
+    setData({ ...currentSystemData });
     return () => {
       dataListeners.delete(listener);
     };
@@ -56,39 +78,54 @@ export const useSystemData = (): SystemData => {
   return data;
 };
 
-// For synchronous utility reads where hook can't be used (like nested functions if any, but hooks are preferred)
 export const getSystemData = () => currentSystemData;
 
-// Mutations (Now Async Firebase calls)
+// Mutations (Async Supabase calls)
 
 export const addCandidate = async (candidate: Omit<Candidate, 'id' | 'createdAt'>) => {
-  if (!auth.currentUser) throw new Error("Não autenticado");
-  const candidatesRef = collection(db, 'candidates');
-  const snap = await getDocs(candidatesRef);
-  if (snap.docs.some(d => d.data().name.trim().toLowerCase() === candidate.name.trim().toLowerCase())) {
-    throw new Error('Candidato com este nome já cadastrado.');
-  }
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Não autenticado, faça login primeiro.");
 
-  const { id: _, ...payload } = candidate as any; // Ignore id if passed somehow
-  await setDoc(doc(db, "candidates", crypto.randomUUID()), {
-    ...payload,
-    createdAt: Date.now(),
+  const { error } = await supabase.from('candidates').insert({
+    user_id: user.id,
+    name: candidate.name,
+    slogan: candidate.slogan,
+    grade: candidate.grade,
+    description: candidate.description,
+    photoUrl: candidate.photoUrl
   });
+
+  if (error) {
+    if (error.code === '23505') throw new Error('Você já possui uma candidatura registrada. (Limite de 1 por conta)');
+    throw new Error(error.message);
+  }
+  fetchSystemData();
+};
+
+export const deleteCandidate = async (candidateId: string) => {
+  await supabase.from('candidates').delete().eq('id', candidateId);
+  fetchSystemData();
 };
 
 export const addVote = async (voterName: string, candidateId: string) => {
-  if (!auth.currentUser) throw new Error("Não autenticado");
-  
-  const systemSnap = await getDoc(systemRef);
-  if (systemSnap.exists() && systemSnap.data().status === 'finished') {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Não autenticado, faça login primeiro.");
+
+  if (currentSystemData.state.status === 'finished') {
     throw new Error('Eleição já foi finalizada.');
   }
 
-  await setDoc(doc(db, "votes", crypto.randomUUID()), {
-    name: voterName,
-    votedForId: candidateId,
-    timestamp: Date.now(),
+  const { error } = await supabase.from('votes').insert({
+    user_id: user.id,
+    voted_for_id: candidateId,
+    name: voterName
   });
+
+  if (error) {
+    if (error.code === '23505') throw new Error('Seu voto já foi registrado no sistema. Só é possível votar 1 vez.');
+    throw new Error(error.message);
+  }
+  fetchSystemData();
 };
 
 export const getCandidateVotesCount = (candidateId: string): number => {
@@ -107,9 +144,6 @@ export const getAdminAuth = (): boolean => {
 
 export const setAdminAuth = async (isAuth: boolean) => {
   if (isAuth) {
-    if (auth.currentUser) {
-      await setDoc(doc(db, 'admins', auth.currentUser.uid), { email: 'admin@local' }, { merge: true });
-    }
     localStorage.setItem('admin_auth', 'true');
   } else {
     localStorage.removeItem('admin_auth');
@@ -141,20 +175,14 @@ export const finalizeElection = async () => {
     updatePayload.vice = vice;
   }
 
-  await setDoc(systemRef, updatePayload, { merge: true });
+  await supabase.from('system_settings').update(updatePayload).eq('id', 'election');
+  fetchSystemData();
 };
 
 export const resetElection = async () => {
   // Clear all candidates, votes, and reset system status
-  const candidatesSnap = await getDocs(collection(db, 'candidates'));
-  const votesSnap = await getDocs(collection(db, 'votes'));
-  
-  for (const c of candidatesSnap.docs) {
-    await deleteDoc(c.ref);
-  }
-  for (const v of votesSnap.docs) {
-    await deleteDoc(v.ref);
-  }
-  
-  await setDoc(systemRef, { status: 'ongoing' });
+  await supabase.from('system_settings').update({ status: 'ongoing', winner: null, vice: null }).eq('id', 'election');
+  await supabase.from('votes').delete().neq('id', '00000000-0000-0000-0000-000000000000'); // delete all
+  await supabase.from('candidates').delete().neq('id', '00000000-0000-0000-0000-000000000000'); // delete all
+  fetchSystemData();
 };
